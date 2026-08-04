@@ -138,10 +138,43 @@ export interface DashboardSummary {
   activeDeals: number;
   completedDeals: number;
   openAds: number;
-  balancesByAsset: Record<string, string>;
   recentLogs: ConnectorLog[];
   unreadNotifications: number;
   activeAutomationRules: number;
+
+  portfolio: { homeFiat: string | null; totalValuation: string; pricedAssetCount: number; totalAssetCount: number };
+  balancesByAsset: { asset: string; totalAmount: string; accountCount: number; valuation: string | null }[];
+  balancesByAccount: {
+    accountId: string;
+    accountName: string;
+    accountColor: string | null;
+    accountStatus: string;
+    platform: { slug: string; name: string };
+    assets: { asset: string; totalAmount: string }[];
+    totalValuation: string | null;
+  }[];
+  dealStats: {
+    totalVolumeByFiat: { fiatAsset: string; amount: string }[];
+    profitByAsset: { asset: string; amount: string }[];
+    buyCount: number;
+    sellCount: number;
+    completionRate: number | null;
+    byPlatform: { platform: string; count: number }[];
+  };
+  dealsTrend: { date: string; total: number; completed: number }[];
+  adsByPlatform: { platform: string; buy: number; sell: number }[];
+  accountsSummary: {
+    id: string;
+    name: string;
+    color: string | null;
+    status: string;
+    platform: { slug: string; name: string };
+    dealCount: number;
+    adCount: number;
+    balanceCount: number;
+    lastSyncAt: string | null;
+    lastError: string | null;
+  }[];
 }
 
 export interface RateSource {

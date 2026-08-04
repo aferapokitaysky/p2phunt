@@ -4,14 +4,11 @@ import {
   IconAccounts,
   IconAds,
   IconAutomation,
-  IconBalances,
   IconDashboard,
   IconDeals,
   IconLogo,
-  IconLogs,
   IconMarket,
   IconNotifications,
-  IconRates,
   IconSettings,
   type IconProps
 } from "../components/icons/NavIcons.js";
@@ -20,13 +17,10 @@ const NAV_ITEMS: { to: string; label: string; icon: (p: IconProps) => JSX.Elemen
   { to: "/", label: "Дашборд", icon: IconDashboard, end: true },
   { to: "/deals", label: "Сделки", icon: IconDeals },
   { to: "/accounts", label: "Аккаунты", icon: IconAccounts },
-  { to: "/balances", label: "Балансы", icon: IconBalances },
   { to: "/ads", label: "Объявления", icon: IconAds },
-  { to: "/market", label: "Рынок", icon: IconMarket },
-  { to: "/rates", label: "Курсы", icon: IconRates },
+  { to: "/market", label: "Рынок и курсы", icon: IconMarket },
   { to: "/automation", label: "Автоматизация", icon: IconAutomation },
-  { to: "/notifications", label: "Уведомления", icon: IconNotifications },
-  { to: "/logs", label: "Журналы", icon: IconLogs },
+  { to: "/activity", label: "Активность", icon: IconNotifications },
   { to: "/settings", label: "Настройки", icon: IconSettings }
 ];
 
