@@ -16,7 +16,7 @@ function applyTheme(mode: ThemeMode) {
 export const useThemeStore = create<ThemeState>()(
   persist(
     (set, get) => ({
-      mode: typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark",
+      mode: "dark",
       toggle: () => {
         const next = get().mode === "dark" ? "light" : "dark";
         applyTheme(next);

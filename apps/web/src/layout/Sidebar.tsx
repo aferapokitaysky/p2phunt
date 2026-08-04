@@ -47,7 +47,7 @@ export function Sidebar() {
             className={({ isActive }) =>
               clsx(
                 "group relative flex h-10 w-10 items-center justify-center rounded-2xl transition-all",
-                isActive ? "bg-flamingo text-white shadow-glass" : "text-muted hover:bg-glassHi hover:text-ink"
+                isActive ? "bg-brand text-white shadow-glass" : "text-muted hover:bg-glassHi hover:text-ink"
               )
             }
           >

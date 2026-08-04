@@ -10,8 +10,7 @@
       (function () {
         try {
           var stored = JSON.parse(localStorage.getItem("p2phunt-theme") || "null");
-          var mode = stored && stored.state && stored.state.mode;
-          if (!mode) mode = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+          var mode = (stored && stored.state && stored.state.mode) || "dark";
           document.documentElement.setAttribute("data-theme", mode);
         } catch (e) {
           document.documentElement.setAttribute("data-theme", "dark");
