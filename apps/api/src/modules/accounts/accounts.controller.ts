@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post } from "@nestjs/common";
+import { Body, Controller, Delete, Get, Param, Patch, Post } from "@nestjs/common";
 import { AuthenticatedUser, CurrentUser } from "../../common/decorators/current-user.decorator.js";
 import { CurrentWorkspace } from "../../common/decorators/current-workspace.decorator.js";
 import { AccountsService } from "./accounts.service.js";
@@ -64,5 +64,14 @@ export class AccountsController {
   @Post(":id/sync")
   syncAccount(@CurrentWorkspace() workspaceId: string, @Param("id") id: string) {
     return this.accounts.requestSync(workspaceId, id);
+  }
+
+  @Delete(":id")
+  archiveAccount(
+    @CurrentWorkspace() workspaceId: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param("id") id: string
+  ) {
+    return this.accounts.archiveAccount(workspaceId, user.userId, id);
   }
 }

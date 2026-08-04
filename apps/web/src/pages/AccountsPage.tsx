@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { Card } from "../components/Card.js";
+import { ConfirmDialog } from "../components/ConfirmDialog.js";
 import { ConnectAccountModal } from "../components/ConnectAccountModal.js";
 import { ExchangeIcon } from "../components/ExchangeIcon.js";
 import { IconAutomation as IconSettingsGear } from "../components/icons/NavIcons.js";
@@ -9,7 +10,7 @@ import { PageHeader } from "../components/PageHeader.js";
 import { SegmentedFilter } from "../components/SegmentedFilter.js";
 import { StatBar } from "../components/StatBar.js";
 import { StatusChip } from "../components/StatusChip.js";
-import { useAccounts, useSyncAccount } from "../hooks/api.js";
+import { useAccounts, useArchiveAccount, useSyncAccount } from "../hooks/api.js";
 import type { Account } from "../lib/types.js";
 
 const PROBLEM_STATUSES = new Set(["error", "reauth_required"]);
@@ -19,7 +20,17 @@ function initials(name: string) {
   return name.trim().slice(0, 1).toUpperCase() || "?";
 }
 
-function AccountCard({ account, onSync, syncing }: { account: Account; onSync: () => void; syncing: boolean }) {
+function AccountCard({
+  account,
+  onSync,
+  syncing,
+  onRequestRemove
+}: {
+  account: Account;
+  onSync: () => void;
+  syncing: boolean;
+  onRequestRemove: () => void;
+}) {
   const navigate = useNavigate();
 
   return (
@@ -87,6 +98,16 @@ function AccountCard({ account, onSync, syncing }: { account: Account; onSync: (
           >
             <IconSettingsGear size={14} />
           </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onRequestRemove();
+            }}
+            title="Удалить аккаунт"
+            className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition-colors hover:bg-danger/15 hover:text-danger"
+          >
+            <Trash2 size={14} />
+          </button>
         </div>
       </div>
 
@@ -98,8 +119,10 @@ function AccountCard({ account, onSync, syncing }: { account: Account; onSync: (
 export function AccountsPage() {
   const { data: accounts = [], isLoading } = useAccounts();
   const syncAccount = useSyncAccount();
+  const archiveAccount = useArchiveAccount();
   const [filter, setFilter] = useState("all");
   const [showConnect, setShowConnect] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<Account | null>(null);
 
   const counts = useMemo(
     () => ({
@@ -175,6 +198,7 @@ export function AccountsPage() {
               account={account}
               syncing={syncAccount.isPending}
               onSync={() => syncAccount.mutate(account.id)}
+              onRequestRemove={() => setRemoveTarget(account)}
             />
           ))}
 
@@ -193,6 +217,19 @@ export function AccountsPage() {
       )}
 
       <ConnectAccountModal open={showConnect} onClose={() => setShowConnect(false)} />
+
+      <ConfirmDialog
+        open={!!removeTarget}
+        title="Удалить аккаунт?"
+        description={`«${removeTarget?.name ?? ""}» будет отключён, а его сделки, объявления и балансы больше не будут обновляться.`}
+        confirmLabel="Удалить"
+        danger
+        onConfirm={() => {
+          if (removeTarget) archiveAccount.mutate(removeTarget.id);
+          setRemoveTarget(null);
+        }}
+        onCancel={() => setRemoveTarget(null)}
+      />
     </div>
   );
 }

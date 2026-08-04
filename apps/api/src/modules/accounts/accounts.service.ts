@@ -180,6 +180,26 @@ export class AccountsService {
     return account;
   }
 
+  async archiveAccount(workspaceId: string, actorUserId: string, id: string) {
+    await this.assertOwnership(workspaceId, id);
+    await this.prisma.account.update({
+      where: { id },
+      data: { archivedAt: new Date(), status: "archived" }
+    });
+
+    await this.audit.record({
+      workspaceId,
+      actorUserId,
+      actorType: "user",
+      action: "account.archived",
+      entityType: "Account",
+      entityId: id
+    });
+
+    await this.events.publish(workspaceId, "account.status_changed", { accountId: id, status: "archived" });
+    return { ok: true };
+  }
+
   /**
    * Saves the encrypted secret, then immediately calls the connector's own
    * validateCredentials() (a lightweight read-only request against the real API) so a bad

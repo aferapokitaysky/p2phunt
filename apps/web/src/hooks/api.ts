@@ -88,6 +88,14 @@ export function useDisableAccount() {
   });
 }
 
+export function useArchiveAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete<{ ok: boolean }>(`/accounts/${id}`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] })
+  });
+}
+
 export function useSyncAccount() {
   const qc = useQueryClient();
   return useMutation({
