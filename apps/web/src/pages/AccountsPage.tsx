@@ -124,7 +124,7 @@ export function AccountsPage() {
         actions={
           <button
             onClick={() => setShowConnect(true)}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-brand px-3.5 py-1.5 text-sm font-medium text-canvas shadow-glass transition-opacity hover:opacity-90"
+            className="inline-flex items-center gap-1.5 rounded-xl bg-brand-gradient px-3.5 py-1.5 text-sm font-medium text-onPrimary shadow-glass transition-all hover:brightness-110"
           >
             <Plus size={14} />
             Подключить аккаунт

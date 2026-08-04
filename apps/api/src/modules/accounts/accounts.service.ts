@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { Prisma } from "@prisma/client";
 import { AuditService } from "../audit/audit.service.js";
 import { CryptoService } from "../crypto/crypto.service.js";
@@ -180,8 +180,20 @@ export class AccountsService {
     return account;
   }
 
+  /**
+   * Saves the encrypted secret, then immediately calls the connector's own
+   * validateCredentials() (a lightweight read-only request against the real API) so a bad
+   * key is rejected synchronously in the connect flow instead of only surfacing later as a
+   * silent "error" status after the worker's next async sync attempt.
+   */
   async setSecret(workspaceId: string, actorUserId: string, id: string, input: ConnectAccountSecretDto) {
-    await this.assertOwnership(workspaceId, id);
+    const account = await this.prisma.account.findFirst({
+      where: { id, workspaceId },
+      include: { connectorDefinition: true }
+    });
+    if (!account) {
+      throw new NotFoundException("Аккаунт не найден");
+    }
 
     const encrypted = this.crypto.encryptToString(JSON.stringify(input.payload));
 
@@ -194,11 +206,6 @@ export class AccountsService {
       }
     });
 
-    await this.prisma.account.update({
-      where: { id },
-      data: { status: "connecting" }
-    });
-
     await this.audit.record({
       workspaceId,
       actorUserId,
@@ -209,7 +216,52 @@ export class AccountsService {
       metadata: { kind: input.kind }
     });
 
-    return { id: secret.id, kind: secret.kind, status: secret.status, createdAt: secret.createdAt };
+    const connectorSlug = account.connectorDefinition.slug;
+    const connector = this.platforms.getConnector(connectorSlug);
+    const logger = {
+      info: (message: string, metadata?: Record<string, unknown>) => this.logConnector(workspaceId, id, connectorSlug, "info", message, metadata),
+      warn: (message: string, metadata?: Record<string, unknown>) => this.logConnector(workspaceId, id, connectorSlug, "warn", message, metadata),
+      error: (message: string, metadata?: Record<string, unknown>) => this.logConnector(workspaceId, id, connectorSlug, "error", message, metadata)
+    };
+
+    const validation = await connector.validateCredentials({ workspaceId, accountId: id, credentials: input.payload, logger });
+
+    if (!validation.ok) {
+      await this.prisma.account.update({
+        where: { id },
+        data: { status: "error", lastError: validation.reason ?? "Не удалось подтвердить ключ" }
+      });
+      await this.events.publish(workspaceId, "account.status_changed", { accountId: id, status: "error" });
+      throw new BadRequestException(validation.reason ?? "Не удалось подтвердить ключ");
+    }
+
+    await this.prisma.account.update({
+      where: { id },
+      data: { status: "active", lastError: null }
+    });
+    await this.events.publish(workspaceId, "account.status_changed", { accountId: id, status: "active" });
+
+    return { id: secret.id, kind: secret.kind, status: secret.status, createdAt: secret.createdAt, validated: true };
+  }
+
+  private logConnector(
+    workspaceId: string,
+    accountId: string,
+    connectorSlug: string,
+    level: string,
+    message: string,
+    metadata?: Record<string, unknown>
+  ) {
+    void this.prisma.connectorLog.create({
+      data: {
+        workspaceId,
+        accountId,
+        connectorSlug,
+        level,
+        message,
+        ...(metadata !== undefined ? { metadata: metadata as Prisma.InputJsonValue } : {})
+      }
+    });
   }
 
   async listSyncJobs(workspaceId: string, id: string) {

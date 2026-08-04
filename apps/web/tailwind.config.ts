@@ -17,12 +17,18 @@ export default {
         glassHi: "var(--glass-hi)",
         brand: "var(--brand)",
         brandMuted: "var(--brand-muted)",
+        onPrimary: "var(--on-primary)",
         flamingo: "var(--flamingo)",
         accent: "var(--accent)",
+        cyan: "var(--cyan)",
+        purple: "var(--purple)",
         danger: "var(--danger)",
         warning: "var(--warning)",
         success: "var(--success)",
         info: "var(--info)"
+      },
+      backgroundImage: {
+        "brand-gradient": "var(--brand-gradient)"
       },
       boxShadow: {
         glass: "var(--shadow-glass)",

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import clsx from "clsx";
-import { X } from "lucide-react";
+import { ExternalLink, X } from "lucide-react";
 import { useConnectors, useCreateAccount, useSetAccountSecret, useSyncAccount } from "../hooks/api.js";
 import { Button } from "./Button.js";
 import { ExchangeIcon } from "./ExchangeIcon.js";
@@ -26,6 +26,8 @@ interface CredentialField {
 interface CredentialSpec {
   fields: CredentialField[];
   hint: string;
+  keyUrl: string;
+  keyUrlLabel: string;
 }
 
 const CREDENTIAL_SPECS: Record<string, CredentialSpec> = {
@@ -34,26 +36,36 @@ const CREDENTIAL_SPECS: Record<string, CredentialSpec> = {
       { key: "apiKey", label: "API Key" },
       { key: "apiSecret", label: "API Secret" }
     ],
-    hint: "Создайте ключ в личном кабинете Binance → API Management. Права на вывод средств включать не нужно."
+    hint: "Создайте ключ в личном кабинете Binance → API Management. Права на вывод средств включать не нужно.",
+    keyUrl: "https://www.binance.com/en/my/settings/api-management",
+    keyUrlLabel: "Открыть Binance API Management"
   },
   bybit: {
     fields: [
       { key: "apiKey", label: "API Key" },
       { key: "apiSecret", label: "API Secret" }
     ],
-    hint: "Создайте ключ в личном кабинете Bybit → API. Права на вывод средств включать не нужно."
+    hint: "Создайте ключ в личном кабинете Bybit → API. Права на вывод средств включать не нужно.",
+    keyUrl: "https://www.bybit.com/app/user/api-management",
+    keyUrlLabel: "Открыть Bybit API Management"
   },
   cryptobot: {
     fields: [{ key: "apiToken", label: "API Token" }],
-    hint: "Откройте @CryptoBot в Telegram → /pay → Create App, скопируйте API Token."
+    hint: "Откройте @CryptoBot в Telegram → /pay → Create App, скопируйте API Token.",
+    keyUrl: "https://t.me/CryptoBot?start=pay",
+    keyUrlLabel: "Открыть @CryptoBot"
   },
   xrocket: {
     fields: [{ key: "apiToken", label: "API Token" }],
-    hint: "Откройте @xRocket в Telegram → Rocket Pay → Create App → API token."
+    hint: "Откройте @xRocket в Telegram → Rocket Pay → Create App → API token.",
+    keyUrl: "https://t.me/xRocket",
+    keyUrlLabel: "Открыть @xRocket"
   },
   walletpay: {
     fields: [{ key: "apiKey", label: "Store API Key" }],
-    hint: "Получите ключ в кабинете pay.wallet.tg после одобрения магазина."
+    hint: "Получите ключ в кабинете pay.wallet.tg после одобрения магазина.",
+    keyUrl: "https://pay.wallet.tg/",
+    keyUrlLabel: "Открыть pay.wallet.tg"
   }
 };
 
@@ -66,6 +78,7 @@ export function ConnectAccountModal({ open, onClose }: { open: boolean; onClose:
   const [name, setName] = useState("");
   const [credentials, setCredentials] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
+  const [pendingAccountId, setPendingAccountId] = useState<string | null>(null);
 
   if (!open) return null;
 
@@ -79,6 +92,7 @@ export function ConnectAccountModal({ open, onClose }: { open: boolean; onClose:
     setName("");
     setCredentials({});
     setError(null);
+    setPendingAccountId(null);
   };
 
   const submit = async () => {
@@ -86,15 +100,18 @@ export function ConnectAccountModal({ open, onClose }: { open: boolean; onClose:
     setError(null);
 
     try {
-      const account = await createAccount.mutateAsync({ platform: selected.platform, connector: selected.slug, name: name.trim() });
+      // If a previous attempt already created the account but the key was rejected, reuse
+      // that account on retry instead of creating a duplicate for every failed attempt.
+      const accountId = pendingAccountId ?? (await createAccount.mutateAsync({ platform: selected.platform, connector: selected.slug, name: name.trim() })).id;
+      if (!pendingAccountId) setPendingAccountId(accountId);
 
       if (needsCredentials) {
         const payload: Record<string, unknown> = {};
         for (const f of spec.fields) payload[f.key] = (credentials[f.key] ?? "").trim();
-        await setSecret.mutateAsync({ id: account.id, kind: "api_key", payload });
+        await setSecret.mutateAsync({ id: accountId, kind: "api_key", payload });
       }
 
-      syncAccount.mutate(account.id);
+      syncAccount.mutate(accountId);
       reset();
       onClose();
     } catch (e) {
@@ -136,6 +153,7 @@ export function ConnectAccountModal({ open, onClose }: { open: boolean; onClose:
                 setConnectorSlug(c.slug);
                 setCredentials({});
                 setError(null);
+                setPendingAccountId(null);
               }}
               className={clsx(
                 "flex flex-col items-center gap-1.5 rounded-2xl border p-3 transition-all",
@@ -165,7 +183,23 @@ export function ConnectAccountModal({ open, onClose }: { open: boolean; onClose:
 
             {needsCredentials && (
               <div className="mb-2 space-y-3 rounded-xl border border-glassBorder bg-glass p-3">
-                <p className="text-xs text-muted">{spec.hint}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="text-xs text-muted">{spec.hint}</p>
+                  <a
+                    href={spec.keyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex flex-shrink-0 items-center gap-1 whitespace-nowrap rounded-lg bg-glassHi px-2 py-1 text-xs font-medium text-brand hover:brightness-110"
+                  >
+                    {spec.keyUrlLabel}
+                    <ExternalLink size={11} />
+                  </a>
+                </div>
+                {pendingAccountId && (
+                  <p className="rounded-lg bg-warning/12 px-2 py-1 text-xs text-warning">
+                    Аккаунт уже создан — просто исправьте ключ и подключите снова.
+                  </p>
+                )}
                 {spec.fields.map((f) => (
                   <Field key={f.key} label={f.label}>
                     <Input
