@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 :root {
-  --canvas: #efecf8;
+  --canvas: #f2eff9;
   --ink: #1c1b2e;
   --muted: #8b899f;
   --subtle: #adabbf;
@@ -30,13 +30,13 @@
 }
 
 [data-theme="dark"] {
-  --canvas: #0a0e1f;
+  --canvas: #131c38;
   --ink: #f1f2fa;
   --muted: #9195b8;
   --subtle: #5d6088;
   --line: rgba(255, 255, 255, 0.08);
-  --glass: rgba(255, 255, 255, 0.055);
-  --glass-strong: rgba(20, 24, 48, 0.6);
+  --glass: rgba(255, 255, 255, 0.065);
+  --glass-strong: rgba(22, 30, 58, 0.62);
   --glass-border: rgba(255, 255, 255, 0.1);
   --glass-hi: rgba(255, 255, 255, 0.16);
   --brand: #6c8cff;
@@ -49,9 +49,9 @@
   --info: var(--brand);
   --shadow-glass: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
   --shadow-glass-lg: 0 24px 70px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.4);
-  --blob-a: #5b3ea8;
+  --blob-a: #4a5fc7;
   --blob-b: #b23e78;
-  --blob-c: #2a6fc0;
+  --blob-c: #2a8fd0;
   --blob-d: #3e8f7a;
   color-scheme: dark;
 }

@@ -38,7 +38,10 @@ export function usePlatforms() {
 export function useConnectors() {
   return useQuery({
     queryKey: ["connectors"],
-    queryFn: () => api.get<{ slug: string; platform: string; displayName: string; capabilities: string[]; safetyLevel: number }[]>("/connectors")
+    queryFn: () =>
+      api.get<{ slug: string; platform: string; displayName: string; capabilities: string[]; safetyLevel: number; authMethods: string[] }[]>(
+        "/connectors"
+      )
   });
 }
 
