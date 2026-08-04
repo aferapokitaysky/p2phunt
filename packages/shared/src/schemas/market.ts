@@ -2,7 +2,7 @@ import { z } from "zod";
 import { assetCodeSchema, moneyDecimalSchema } from "./assets.js";
 import { tradeSideSchema } from "./domain.js";
 
-export const marketPlatformSchema = z.enum(["binance", "bybit"]);
+export const marketPlatformSchema = z.enum(["binance", "bybit", "okx"]);
 
 /**
  * A public P2P advertisement fetched live from an exchange's public (unauthenticated)

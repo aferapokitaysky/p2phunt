@@ -1,20 +1,32 @@
 import binance from "../assets/exchanges/binance.svg";
 import bybit from "../assets/exchanges/bybit.svg";
+import cryptobot from "../assets/exchanges/cryptobot.jpg";
 import mock from "../assets/exchanges/mock.svg";
+import okx from "../assets/exchanges/okx.svg";
 import telegram from "../assets/exchanges/telegram.svg";
+import walletpay from "../assets/exchanges/walletpay.svg";
+import xrocket from "../assets/exchanges/xrocket.svg";
 
 const EXCHANGE_ICONS: Record<string, string> = {
   binance,
   bybit,
+  okx,
   mock,
-  telegram
+  telegram,
+  cryptobot,
+  xrocket,
+  walletpay
 };
 
 const EXCHANGE_LABELS: Record<string, string> = {
   binance: "Binance",
   bybit: "Bybit",
+  okx: "OKX",
   mock: "Демо",
-  telegram: "Telegram"
+  telegram: "Telegram",
+  cryptobot: "CryptoBot",
+  xrocket: "xRocket",
+  walletpay: "Wallet"
 };
 
 export function ExchangeIcon({ platform, size = 20 }: { platform: string; size?: number }) {

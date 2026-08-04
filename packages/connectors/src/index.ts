@@ -5,4 +5,8 @@ export * from "./binance/public.js";
 export * from "./binance/private.js";
 export * from "./bybit/public.js";
 export * from "./bybit/private.js";
+export * from "./okx/public.js";
+export * from "./cryptobot/private.js";
+export * from "./xrocket/private.js";
+export * from "./walletpay/private.js";
 export * from "./telegram/parser.js";

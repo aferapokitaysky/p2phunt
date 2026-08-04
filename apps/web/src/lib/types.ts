@@ -252,7 +252,7 @@ export interface ConnectorCommand {
 }
 
 export interface MarketAd {
-  platform: "binance" | "bybit";
+  platform: "binance" | "bybit" | "okx";
   externalId: string;
   side: "buy" | "sell";
   cryptoAsset: string;

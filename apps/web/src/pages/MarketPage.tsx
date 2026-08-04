@@ -19,7 +19,7 @@ export function MarketPage() {
     <div>
       <PageHeader
         title="Рынок"
-        subtitle="Живые публичные P2P-объявления с Binance и Bybit — без аккаунта и API-ключа."
+        subtitle="Живые публичные P2P-объявления с Binance, Bybit и OKX — без аккаунта и API-ключа."
       />
 
       <Card className="mb-4">

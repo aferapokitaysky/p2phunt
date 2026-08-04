@@ -1,5 +1,13 @@
 import { Injectable } from "@nestjs/common";
-import { BinanceConnector, BybitConnector, ConnectorRegistry, MockConnector } from "@p2phunt/connectors";
+import {
+  BinanceConnector,
+  BybitConnector,
+  ConnectorRegistry,
+  CryptoBotConnector,
+  MockConnector,
+  WalletPayConnector,
+  XRocketConnector
+} from "@p2phunt/connectors";
 
 @Injectable()
 export class PlatformsService {
@@ -9,6 +17,9 @@ export class PlatformsService {
     this.registry.register(new MockConnector());
     this.registry.register(new BinanceConnector());
     this.registry.register(new BybitConnector());
+    this.registry.register(new CryptoBotConnector());
+    this.registry.register(new XRocketConnector());
+    this.registry.register(new WalletPayConnector());
   }
 
   listConnectors() {

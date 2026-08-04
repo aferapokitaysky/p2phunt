@@ -2,7 +2,7 @@ import { BadRequestException, Controller, Get, Query } from "@nestjs/common";
 import type { MarketPlatform } from "@p2phunt/shared";
 import { MarketService } from "./market.service.js";
 
-const VALID_PLATFORMS: MarketPlatform[] = ["binance", "bybit"];
+const VALID_PLATFORMS: MarketPlatform[] = ["binance", "bybit", "okx"];
 
 @Controller("market")
 export class MarketController {

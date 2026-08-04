@@ -1,5 +1,5 @@
 import { Injectable, Logger } from "@nestjs/common";
-import { fetchBinancePublicAds, fetchBybitPublicAds } from "@p2phunt/connectors";
+import { fetchBinancePublicAds, fetchBybitPublicAds, fetchOkxPublicAds } from "@p2phunt/connectors";
 import type { MarketAdDto, MarketPlatform, MarketQuery } from "@p2phunt/shared";
 
 interface CacheEntry {
@@ -41,7 +41,12 @@ export class MarketService {
       return cached.data;
     }
 
-    const data = platform === "binance" ? await fetchBinancePublicAds(query) : await fetchBybitPublicAds(query);
+    const data =
+      platform === "binance"
+        ? await fetchBinancePublicAds(query)
+        : platform === "bybit"
+          ? await fetchBybitPublicAds(query)
+          : await fetchOkxPublicAds(query);
     this.cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL_MS });
     return data;
   }
