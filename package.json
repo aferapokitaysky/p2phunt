@@ -1,0 +1,30 @@
+{
+  "name": "p2phunt",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Unified P2P trading operations platform.",
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "build:packages": "pnpm --filter @p2phunt/shared --filter @p2phunt/connectors build",
+    "dev": "pnpm --parallel --filter @p2phunt/api --filter @p2phunt/web --filter @p2phunt/worker dev",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm build:packages && pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "db:generate": "pnpm --filter @p2phunt/api db:generate",
+    "db:migrate": "pnpm --filter @p2phunt/api db:migrate",
+    "db:studio": "pnpm --filter @p2phunt/api db:studio",
+    "db:validate": "pnpm --filter @p2phunt/api db:validate"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.32.0",
+    "eslint": "^9.32.0",
+    "globals": "^16.3.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.38.0"
+  }
+}

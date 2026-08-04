@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="description" content="P2PHunt — единый пульт управления P2P-торговлей: аккаунты, сделки, курсы и автоматизация в одном месте." />
+    <title>P2PHunt — операционная панель P2P-трейдера</title>
+    <script>
+      (function () {
+        try {
+          var stored = JSON.parse(localStorage.getItem("p2phunt-theme") || "null");
+          var mode = stored && stored.state && stored.state.mode;
+          if (!mode) mode = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", mode);
+        } catch (e) {
+          document.documentElement.setAttribute("data-theme", "dark");
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

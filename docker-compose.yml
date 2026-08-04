@@ -1,0 +1,88 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: p2phunt-postgres
+    environment:
+      POSTGRES_USER: p2phunt
+      POSTGRES_PASSWORD: p2phunt
+      POSTGRES_DB: p2phunt
+    ports:
+      - "55432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U p2phunt -d p2phunt"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: p2phunt-redis
+    ports:
+      - "56379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    container_name: p2phunt-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://p2phunt:p2phunt@postgres:5432/p2phunt?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-change-me-access}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-change-me-refresh}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY:-change-me-32-byte-minimum-development-key}
+      # Deliberately a distinct var name from WEB_ORIGIN (used by root .env for local `pnpm dev`,
+      # where web runs on :5173) — the dockerized web container always serves on :4173.
+      WEB_ORIGIN: ${DOCKER_WEB_ORIGIN:-http://localhost:4173}
+      API_PORT: "4000"
+    ports:
+      - "4000:4000"
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    container_name: p2phunt-worker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://p2phunt:p2phunt@postgres:5432/p2phunt?schema=public
+      REDIS_URL: redis://redis:6379
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        # Distinct from the root .env's VITE_API_URL/VITE_WS_URL (used by local `pnpm dev`) —
+        # both happen to default to the same value here, but kept separate to avoid the same
+        # cross-environment mix-up as WEB_ORIGIN above.
+        VITE_API_URL: ${DOCKER_VITE_API_URL:-http://localhost:4000}
+        VITE_WS_URL: ${DOCKER_VITE_WS_URL:-http://localhost:4000}
+    container_name: p2phunt-web
+    depends_on:
+      - api
+    ports:
+      - "4173:4173"
+
+volumes:
+  postgres_data:
+  redis_data:

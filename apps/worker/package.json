@@ -1,0 +1,26 @@
+{
+  "name": "@p2phunt/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "lint": "eslint src --ext .ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "echo \"No worker tests yet\""
+  },
+  "dependencies": {
+    "@p2phunt/connectors": "workspace:*",
+    "@p2phunt/shared": "workspace:*",
+    "@prisma/client": "^6.13.0",
+    "bullmq": "^5.56.9",
+    "ioredis": "^5.6.1",
+    "tsx": "^4.20.3",
+    "zod": "^4.0.14"
+  },
+  "devDependencies": {
+    "@types/node": "^24.1.0"
+  }
+}

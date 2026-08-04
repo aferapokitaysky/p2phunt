@@ -1,0 +1,602 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum WorkspaceMode {
+  manual
+  auto
+}
+
+enum PlatformCategory {
+  exchange
+  telegram
+  web
+  mock
+}
+
+enum AccountStatus {
+  draft
+  connecting
+  active
+  disabled
+  error
+  reauth_required
+  archived
+}
+
+enum TradeSide {
+  buy
+  sell
+}
+
+enum DealStatus {
+  new
+  pending
+  payment_pending
+  paid
+  appeal
+  completed
+  cancelled
+  expired
+  failed
+  unknown
+}
+
+enum AdStatus {
+  active
+  paused
+  disabled
+  out_of_balance
+  updating
+  error
+  unknown
+}
+
+enum JobStatus {
+  queued
+  running
+  succeeded
+  failed
+  retrying
+  cancelled
+}
+
+enum RuleExecutionStatus {
+  dry_run
+  skipped
+  succeeded
+  failed
+  blocked_by_mode
+  blocked_by_guard
+  cooldown
+}
+
+enum NotificationSeverity {
+  info
+  success
+  warning
+  error
+  critical
+}
+
+enum CommandStatus {
+  pending
+  running
+  succeeded
+  failed
+  blocked_by_mode
+  blocked_by_guard
+}
+
+enum MessageDirection {
+  inbound
+  outbound
+}
+
+enum MessageSource {
+  internal
+  telegram
+  exchange
+}
+
+model User {
+  id             String            @id @default(uuid())
+  email          String            @unique
+  passwordHash   String
+  displayName    String?
+  status         String            @default("active")
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  memberships    WorkspaceMember[]
+  auditLogs      AuditLog[]
+  refreshTokens  RefreshToken[]
+  dealNotes      DealNote[]
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+  userAgent String?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Workspace {
+  id              String                @id @default(uuid())
+  name            String
+  mode            WorkspaceMode         @default(manual)
+  emergencyStop   Boolean               @default(false)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+  members         WorkspaceMember[]
+  accounts        Account[]
+  deals           Deal[]
+  ads             Ad[]
+  balances        Balance[]
+  rateSources     RateSource[]
+  rateTicks       RateTick[]
+  currentRates    CurrentRate[]
+  markupRules     MarkupRule[]
+  automationRules AutomationRule[]
+  notifications   Notification[]
+  auditLogs       AuditLog[]
+  connectorLogs   ConnectorLog[]
+  syncJobs        ConnectorSyncJob[]
+  commands        ConnectorCommand[]
+  dealNotes       DealNote[]
+  dealMessages    DealMessage[]
+  channels        NotificationChannel[]
+  telegramDialogs TelegramDialog[]
+}
+
+model WorkspaceMember {
+  id          String    @id @default(uuid())
+  workspaceId String
+  userId      String
+  role        String
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userId])
+}
+
+model Platform {
+  id          String                @id @default(uuid())
+  slug        String                @unique
+  name        String
+  category    PlatformCategory
+  isEnabled   Boolean               @default(true)
+  createdAt   DateTime              @default(now())
+  connectors  ConnectorDefinition[]
+  accounts    Account[]
+}
+
+model ConnectorDefinition {
+  id          String   @id @default(uuid())
+  platformId  String
+  slug        String   @unique
+  version     String
+  capabilities Json
+  authMethods Json
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  platform    Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  accounts    Account[]
+}
+
+model Account {
+  id                    String                @id @default(uuid())
+  workspaceId           String
+  platformId            String
+  connectorDefinitionId String
+  name                  String
+  color                 String?
+  groupName             String?
+  tags                  String[]              @default([])
+  mode                  WorkspaceMode         @default(manual)
+  status                AccountStatus         @default(draft)
+  lastSyncAt            DateTime?
+  lastError             String?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  archivedAt            DateTime?
+  workspace             Workspace             @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  platform              Platform              @relation(fields: [platformId], references: [id])
+  connectorDefinition   ConnectorDefinition   @relation(fields: [connectorDefinitionId], references: [id])
+  secrets               AccountSecret[]
+  deals                 Deal[]
+  ads                   Ad[]
+  balances              Balance[]
+  connectorLogs         ConnectorLog[]
+  syncJobs              ConnectorSyncJob[]
+  commands              ConnectorCommand[]
+  dealMessages          DealMessage[]
+  telegramDialogs       TelegramDialog[]
+
+  @@index([workspaceId, status])
+  @@index([workspaceId, platformId])
+  @@index([workspaceId, groupName])
+}
+
+model AccountSecret {
+  id                   String   @id @default(uuid())
+  accountId            String
+  kind                 String
+  encryptedPayload     String
+  encryptionKeyVersion String
+  status               String   @default("active")
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  rotatedAt            DateTime?
+  account              Account  @relation(fields: [accountId], references: [id], onDelete: Cascade)
+}
+
+model Deal {
+  id                     String      @id @default(uuid())
+  workspaceId            String
+  accountId              String
+  platformId             String
+  externalId             String?
+  side                   TradeSide
+  cryptoAsset            String
+  fiatAsset              String
+  cryptoAmount           Decimal     @db.Decimal(36, 18)
+  fiatAmount             Decimal     @db.Decimal(36, 18)
+  price                  Decimal     @db.Decimal(36, 18)
+  feeAmount              Decimal?    @db.Decimal(36, 18)
+  feeAsset               String?
+  profitAmount           Decimal?    @db.Decimal(36, 18)
+  profitAsset            String?
+  counterpartyName       String?
+  counterpartyExternalId String?
+  status                 DealStatus
+  externalStatus         String?
+  openedAt               DateTime?
+  paidAt                 DateTime?
+  completedAt            DateTime?
+  cancelledAt            DateTime?
+  rawPayload             Json?
+  lastSyncJobId          String?
+  tags                   String[]      @default([])
+  comment                String?
+  externalUrl            String?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+  workspace              Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  account                Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  notes                  DealNote[]
+  messages               DealMessage[]
+
+  @@unique([accountId, externalId])
+  @@index([workspaceId, openedAt])
+  @@index([workspaceId, status])
+  @@index([workspaceId, platformId])
+  @@index([workspaceId, accountId])
+  @@index([workspaceId, cryptoAsset, fiatAsset])
+}
+
+model Ad {
+  id              String      @id @default(uuid())
+  workspaceId     String
+  accountId       String
+  platformId      String
+  externalId      String?
+  side            TradeSide
+  cryptoAsset     String
+  fiatAsset       String
+  price           Decimal     @db.Decimal(36, 18)
+  minLimit        Decimal?    @db.Decimal(36, 18)
+  maxLimit        Decimal?    @db.Decimal(36, 18)
+  availableAmount Decimal?    @db.Decimal(36, 18)
+  status          AdStatus
+  externalStatus  String?
+  markupRuleId    String?
+  lastUpdateAt    DateTime?
+  rawPayload      Json?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  workspace       Workspace   @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  account         Account     @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, externalId])
+  @@index([workspaceId, accountId])
+  @@index([workspaceId, status])
+}
+
+model Balance {
+  id              String    @id @default(uuid())
+  workspaceId     String
+  accountId       String
+  asset           String
+  availableAmount Decimal   @db.Decimal(36, 18)
+  lockedAmount    Decimal   @db.Decimal(36, 18)
+  totalAmount     Decimal   @db.Decimal(36, 18)
+  valuationFiat   String?
+  valuationAmount Decimal?  @db.Decimal(36, 18)
+  rawPayload      Json?
+  syncedAt        DateTime
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  workspace       Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  account         Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, asset])
+  @@index([workspaceId, asset])
+  @@index([workspaceId, accountId])
+}
+
+model RateSource {
+  id                String        @id @default(uuid())
+  workspaceId       String
+  slug              String
+  name              String
+  priority          Int
+  refreshIntervalMs Int
+  status            String        @default("active")
+  config            Json?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  workspace         Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  ticks             RateTick[]
+  currentRates      CurrentRate[]
+
+  @@unique([workspaceId, slug])
+}
+
+model RateTick {
+  id              String     @id @default(uuid())
+  workspaceId     String
+  sourceId        String
+  baseAsset       String
+  quoteAsset      String
+  bid             Decimal?   @db.Decimal(36, 18)
+  ask             Decimal?   @db.Decimal(36, 18)
+  mid             Decimal    @db.Decimal(36, 18)
+  rawPayload      Json?
+  sourceTimestamp DateTime?
+  createdAt       DateTime   @default(now())
+  workspace       Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  source          RateSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, baseAsset, quoteAsset, createdAt])
+  @@index([sourceId, baseAsset, quoteAsset, createdAt])
+}
+
+model CurrentRate {
+  id          String     @id @default(uuid())
+  workspaceId String
+  baseAsset   String
+  quoteAsset  String
+  sourceId    String
+  bid         Decimal?   @db.Decimal(36, 18)
+  ask         Decimal?   @db.Decimal(36, 18)
+  mid         Decimal    @db.Decimal(36, 18)
+  selectedBy  String
+  updatedAt   DateTime   @updatedAt
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  source      RateSource @relation(fields: [sourceId], references: [id])
+
+  @@unique([workspaceId, baseAsset, quoteAsset])
+}
+
+model MarkupRule {
+  id          String    @id @default(uuid())
+  workspaceId String
+  scopeType   String
+  scopeId     String?
+  baseAsset   String?
+  quoteAsset  String?
+  side        TradeSide?
+  markupType  String
+  value       Decimal   @db.Decimal(36, 18)
+  priority    Int       @default(100)
+  enabled     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, scopeType, scopeId])
+}
+
+model AutomationRule {
+  id              String          @id @default(uuid())
+  workspaceId     String
+  name            String
+  enabled         Boolean         @default(false)
+  trigger         Json
+  conditions      Json
+  actions         Json
+  guards          Json?
+  cooldownSeconds Int?
+  lastExecutedAt  DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  workspace       Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  executions      RuleExecution[]
+}
+
+model RuleExecution {
+  id               String              @id @default(uuid())
+  workspaceId      String
+  ruleId           String
+  triggerEventId   String?
+  status           RuleExecutionStatus
+  input            Json?
+  conditionResults Json?
+  actionResults    Json?
+  error            String?
+  startedAt        DateTime            @default(now())
+  finishedAt       DateTime?
+  rule             AutomationRule      @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id          String               @id @default(uuid())
+  workspaceId String
+  channel     String
+  title       String
+  body        String
+  severity    NotificationSeverity @default(info)
+  status      String               @default("unread")
+  metadata    Json?
+  readAt      DateTime?
+  createdAt   DateTime             @default(now())
+  workspace   Workspace            @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+}
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  workspaceId String
+  actorUserId String?
+  actorType   String
+  action      String
+  entityType  String
+  entityId    String?
+  before      Json?
+  after       Json?
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  actorUser   User?     @relation(fields: [actorUserId], references: [id])
+
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, entityType, entityId])
+}
+
+model ConnectorSyncJob {
+  id            String    @id @default(uuid())
+  workspaceId   String
+  accountId     String
+  connectorSlug String
+  jobType       String
+  status        JobStatus
+  startedAt     DateTime?
+  finishedAt    DateTime?
+  error         String?
+  stats         Json?
+  createdAt     DateTime  @default(now())
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  account       Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, accountId])
+}
+
+model ConnectorLog {
+  id            String    @id @default(uuid())
+  workspaceId   String
+  accountId     String?
+  connectorSlug String
+  level         String
+  message       String
+  metadata      Json?
+  createdAt     DateTime  @default(now())
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  account       Account?  @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, accountId])
+}
+
+model ConnectorCommand {
+  id             String        @id @default(uuid())
+  workspaceId    String
+  accountId      String
+  connectorSlug  String
+  type           String
+  reason         String
+  input          Json?
+  status         CommandStatus @default(pending)
+  result         Json?
+  error          String?
+  externalCommandId String?
+  ruleExecutionId String?
+  createdAt      DateTime      @default(now())
+  finishedAt     DateTime?
+  workspace      Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  account        Account       @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@index([workspaceId, accountId])
+}
+
+model DealNote {
+  id          String    @id @default(uuid())
+  workspaceId String
+  dealId      String
+  authorUserId String?
+  body        String
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  deal        Deal      @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  authorUser  User?     @relation(fields: [authorUserId], references: [id])
+
+  @@index([workspaceId, dealId])
+}
+
+model DealMessage {
+  id          String            @id @default(uuid())
+  workspaceId String
+  dealId      String
+  accountId   String?
+  source      MessageSource
+  direction   MessageDirection
+  senderName  String?
+  body        String
+  externalId  String?
+  rawPayload  Json?
+  sentAt      DateTime          @default(now())
+  createdAt   DateTime          @default(now())
+  workspace   Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  deal        Deal              @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  account     Account?          @relation(fields: [accountId], references: [id], onDelete: SetNull)
+
+  @@index([workspaceId, dealId, sentAt])
+}
+
+model NotificationChannel {
+  id          String    @id @default(uuid())
+  workspaceId String
+  type        String
+  name        String
+  config      Json
+  enabled     Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model TelegramDialog {
+  id             String    @id @default(uuid())
+  workspaceId    String
+  accountId      String
+  externalDialogId String
+  displayName    String?
+  kind           String
+  botSlug        String?
+  isTracked      Boolean   @default(false)
+  lastMessageAt  DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  account        Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, externalDialogId])
+  @@index([workspaceId, accountId])
+}
