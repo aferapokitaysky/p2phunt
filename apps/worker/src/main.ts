@@ -13,6 +13,15 @@ import { processSyncAccount } from "./jobs/sync-account.js";
 import { prisma } from "./prisma/client.js";
 import { connectorQueue, queueConnection } from "./queues/connector-queue.js";
 
+/**
+ * ENCRYPTION_KEY falls back to a well-known dev default (see connectors/credentials.ts) when
+ * unset, so local `pnpm dev` works with zero setup. In production that default would let
+ * anyone who's read this public repo decrypt every stored exchange API key. Refuse to boot.
+ */
+if (process.env.NODE_ENV === "production" && process.env.ENCRYPTION_KEY === "change-me-32-byte-minimum-development-key") {
+  throw new Error("Refusing to start in production with the dev-default ENCRYPTION_KEY. Set a real value for this environment variable before deploying.");
+}
+
 const redisUrl = process.env.REDIS_URL ?? "redis://localhost:6379";
 const workerConnection = new Redis(redisUrl, { maxRetriesPerRequest: null });
 const publisherConnection = new Redis(redisUrl, { maxRetriesPerRequest: null });
